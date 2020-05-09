@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def load_data(which="both"):
@@ -26,11 +27,11 @@ def load_classic_dataset():
     return pd.DataFrame(dataset)
 
 
-def divide(training_set_percent=0.7):
+def divide(df: pd.DataFrame, training_set_percent=0.7):
     if training_set_percent > 0.9 or training_set_percent < 0.5:
         print("Unreasonably small training set. Quiting....")
         raise ValueError
-
-    training = None
-    test = None
+    msk = np.random.rand(len(df)) < training_set_percent
+    training = df[msk]
+    test = df[~msk]
     return training, test

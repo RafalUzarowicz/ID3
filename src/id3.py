@@ -1,6 +1,6 @@
 from numpy import log2
 import pandas as pd
-from src.loading_data import load_classic_dataset
+from src.loading_data import load_classic_dataset, load_data, divide
 
 
 def entropy(dataset: pd.DataFrame):
@@ -89,11 +89,18 @@ def id3(dataset: pd.DataFrame):
     pass
 
 
-data = load_classic_dataset()
-root = build_tree(data)
-print(root)
-df = data.head().__deepcopy__()
-predictions = predict(root, df)
-df['prediction'] = predictions
-print(df)
+def predict_for_multiple(dataframe):
+    pass
+
+
+def id3_for_multiple():
+    pass
+
+
+def count_good(data_frame: pd.DataFrame):
+    count = 0
+    for i, row in data_frame.iterrows():
+        if row[data_frame.columns[-1]] == row[data_frame.columns[-2]]:
+            count += 1
+    return count
 
