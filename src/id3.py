@@ -1,5 +1,6 @@
 from numpy import log2
 import pandas as pd
+import numpy as np
 from src.loading_data import load_classic_dataset, load_data, divide
 
 
@@ -81,12 +82,24 @@ def predict(tree: dict, dataset: pd.DataFrame):
 
 
 def id3(dataset: pd.DataFrame):
-    # choose portion as window
-    # classify
-    # chceck for correctnes
-    # add misclassified items to window
-    # repeat until all classified
-    pass
+    msk = np.random.rand(len(dataset)) < 0.4
+    window = dataset[msk].__deepcopy__()
+    nr_misses = 1  # can be anything greater than 0
+    root = None
+
+    while nr_misses > 0:
+        root = build_tree(window)
+        predictions = predict(root, dataset)
+        col_name = "predictions"
+        dataset[col_name] = predictions
+        misses = get_misclasified(dataset)
+        dataset = dataset.drop(columns=col_name)
+        nr_misses = len(misses)
+        if nr_misses:
+            misses = misses.drop(col_name, axis=1)
+            window = window.append(misses)
+
+    return root
 
 
 def predict_for_multiple(dataframe):
@@ -104,3 +117,23 @@ def count_good(data_frame: pd.DataFrame):
             count += 1
     return count
 
+
+def get_misclasified(data_frame: pd.DataFrame):
+    mis = pd.DataFrame()
+    for i, row in data_frame.iterrows():
+        target = data_frame.columns[-2]
+        prediction = data_frame.columns[-1]
+        if row[target] != row[prediction]:
+            mis.append(row)
+    return mis
+
+
+data = load_classic_dataset()
+root = id3(data)
+predictions = predict(root, data)
+data["pred"] = predictions
+res = count_good(data)
+if res == len(data):
+    print("Yupi ya yey!")
+else:
+    print("Res: " + str(res) + " out of " + str(len(data)))
