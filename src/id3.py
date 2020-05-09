@@ -26,7 +26,7 @@ def attribute_entropy(attribute: str, dataset: pd.DataFrame):
     return att_entropy
 
 
-def choose_biggest_entropy(dataset):
+def choose_biggest_entropy(dataset: pd.DataFrame):
     set_entropy = entropy(dataset)
 
     att_entropy = {}
@@ -46,7 +46,7 @@ def choose_biggest_entropy(dataset):
     return biggest_att
 
 
-def build_tree(dataset, tree=None):
+def build_tree(dataset: pd.DataFrame, tree=None):
     max_entropy_att = choose_biggest_entropy(dataset)
     att_values = dataset[max_entropy_att].unique()
     target_att = dataset.columns[-1]
@@ -81,7 +81,7 @@ def predict(tree: dict, dataset: pd.DataFrame):
     return predictions
 
 
-def id3(dataset: pd.DataFrame):
+def id3(dataset: pd.DataFrame):  # may not work properly for small datasets
     msk = np.random.rand(len(dataset)) < 0.4
     window = dataset[msk].__deepcopy__()
     nr_misses = 1  # can be anything greater than 0
@@ -102,11 +102,14 @@ def id3(dataset: pd.DataFrame):
     return root
 
 
-def predict_for_multiple(dataframe):
+def predict_for_multiple(dataframe: pd.DataFrame, trees: list):
+    # todo classify using several trees - all while hoping that the item gets classified as "P" in only one of them
     pass
 
 
-def id3_for_multiple():
+def id3_for_multiple(dataframe: pd.DataFrame):
+    # todo run id3 several times - once for each possible value of target attribute performing P-vs-all
+    #  classification (copy and clean dataset of redundant non-P values
     pass
 
 
@@ -119,6 +122,7 @@ def count_good(data_frame: pd.DataFrame):
 
 
 def get_misclasified(data_frame: pd.DataFrame):
+    # last column is assumed to be predictions and one before that - actual values
     mis = pd.DataFrame()
     for i, row in data_frame.iterrows():
         target = data_frame.columns[-2]
@@ -128,6 +132,9 @@ def get_misclasified(data_frame: pd.DataFrame):
     return mis
 
 
+# todo - clean dataset - several attributes have a bit too many values - G1, G2, G3 and absences -> divide them into
+#  several ranges and assign new values according to that
+#   !!! throughout whole process it is assumed that target attiribute is the last column of dataframe
 data = load_classic_dataset()
 root = id3(data)
 predictions = predict(root, data)
