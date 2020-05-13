@@ -1,3 +1,8 @@
+"""
+    author: Joanna Sokołowska
+             https://github.com/jsokolowska
+"""
+
 import pandas as pd
 import numpy as np
 

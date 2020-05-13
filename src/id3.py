@@ -1,3 +1,8 @@
+"""
+    author: Joanna Sokołowska
+             https://github.com/jsokolowska
+"""
+
 from numpy import log2
 import pandas as pd
 import numpy as np
