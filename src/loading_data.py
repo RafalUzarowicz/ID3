@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 
-def load_data(which="both"):
+def load_example_dataset(which="both"):
     df = None
     if which == "mat":
         df = pd.read_csv("../student-alcohol-consumption/student-mat.csv")
@@ -19,6 +19,8 @@ def load_data(which="both"):
         df = pd.concat([df1, df2], ignore_index=True)
     else:
         print("Option not recognized")
+    if df is not None:
+        df.drop(["G1", "G2", "G3"], axis=1)
     return df
 
 
