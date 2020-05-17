@@ -15,7 +15,7 @@ import numpy as np
 from src.loading_data import load_classic_dataset, load_example_dataset, divide
 
 
-class id3:
+class ID3:
     def __init__(self, dataset: pd.DataFrame, classification_attribute: str):
         self.dataset = dataset
         self.class_attr = classification_attribute
@@ -28,7 +28,7 @@ class id3:
         self.prepare_tree()
 
     def prepare_data(self):
-        for val in self.dataset.columns is not self.class_attr:
+        for val in self.dataset.columns:
             if all(isinstance(n, int) for n in self.dataset[val]) or all(
                     isinstance(n, float) for n in self.dataset[val]):
                 self.is_continuous[val] = True
@@ -64,11 +64,12 @@ class id3:
     def find_maximum_gain(self, data: pd.DataFrame):
         best_attr = ""
         best_gain = -1.0
-        for key in self.dataset.columns():
-            current_gain = self.gain(data, key)
-            if current_gain >= best_gain:
-                best_attr = key
-                best_gain = current_gain
+        for key in self.dataset.columns:
+            if key is not self.class_attr:
+                current_gain = self.gain(data, key)
+                if current_gain >= best_gain:
+                    best_attr = key
+                    best_gain = current_gain
         return best_attr
 
     def prepare_tree(self):
@@ -177,9 +178,9 @@ class id3:
     def predict(self):
         pass
 
-#
-# dane = load_classic_dataset()
-# idetrzy = id3(dane, "result")
+
+dane = load_classic_dataset()
+idetrzy = ID3(dane, "result")
 
 
 # def entropy(dataset: pd.DataFrame):
