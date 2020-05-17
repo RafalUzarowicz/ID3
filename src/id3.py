@@ -29,11 +29,11 @@ class id3:
 
     def prepare_data(self):
         for val in self.dataset.columns is not self.class_attr:
-            if all(isinstance(n, int) for n in self.dataset[val] ) or all(isinstance(n, float) for n in self.dataset[val] ):
+            if all(isinstance(n, int) for n in self.dataset[val]) or all(
+                    isinstance(n, float) for n in self.dataset[val]):
                 self.is_continuous[val] = True
             else:
                 self.is_continuous[val] = False
-
 
     def entropy(self, data: pd.DataFrame) -> float:
         entro = 0.0
@@ -42,11 +42,11 @@ class id3:
             entro += - fraction * log2(fraction)
         return entro
 
-    def average(self, attribute):
+    def average(self, data: pd.DataFrame, attribute):
         valSum = 0.0
-        for val in self.dataset[attribute].to_list():
+        for val in data[attribute].to_list():
             valSum += val
-        return valSum / len(self.dataset[attribute].to_list())
+        return valSum / len(data[attribute].to_list())
 
     def gain(self, data: pd.DataFrame, attribute: str) -> float:
         if attribute not in self.dataset.columns or attribute == self.class_attr:
@@ -54,9 +54,9 @@ class id3:
         info_gain = self.entropy(self.dataset)
         if self.is_continuous.get(attribute, None) is False:
             for val in data[attribute].unique():
-                info_gain -= self.entropy(data[data[attribute] == val])*len(data[data[attribute] == val])/len(data)
+                info_gain -= self.entropy(data[data[attribute] == val]) * len(data[data[attribute] == val]) / len(data)
         elif self.is_continuous.get(attribute, None) is True:
-            pivot = self.average(attribute)
+            pivot = self.average(data, attribute)
             info_gain -= self.entropy(data[data[attribute] < pivot]) * len(data[data[attribute] < pivot]) / len(data)
             info_gain -= self.entropy(data[data[attribute] >= pivot]) * len(data[data[attribute] >= pivot]) / len(data)
         return info_gain
@@ -72,8 +72,107 @@ class id3:
         return best_attr
 
     def prepare_tree(self):
-        pass
+        all_atributes = list(self.dataset.columns)
+        all_atributes.remove(self.class_attr)
+        temp_data = self.dataset
 
+        def build_tree(data: pd.DataFrame):
+            max_gain_att = self.find_maximum_gain(data)
+            all_atributes.remove(max_gain_att)
+            smaller_data = data.drop(columns=max_gain_att, axis=1)
+
+            node = {max_gain_att: {}}
+            if self.is_continuous[max_gain_att]:
+                node[max_gain_att]["pivot"] = self.average(data, max_gain_att)
+                split_set = data[data[max_gain_att] < node[max_gain_att]["pivot"]]
+                split_set = split_set.drop(columns=max_gain_att, axis=1)
+                end_values = split_set[self.class_attr]
+                if all(n == end_values[0] for n in end_values):
+                    node[max_gain_att][0] = end_values[0]
+                elif len(all_atributes) == 0:
+                    values_counter = {k: 0 for k in self.classification_values}
+                    total_values = 0
+                    for value in end_values:
+                        values_counter[value] += 1
+                        total_values += 1
+                    best_val = self.classification_values[0]
+                    best_prob = values_counter[best_val] / total_values
+                    for value in end_values:
+                        curr_prob = values_counter[value] / total_values
+                        if curr_prob > best_prob:
+                            best_val = value
+                            best_prob = curr_prob
+                    node[max_gain_att][0] = best_val
+                else:
+                    node[max_gain_att][0] = build_tree(split_set)
+
+                split_set = data[data[max_gain_att] >= node[max_gain_att]["pivot"]]
+                split_set = split_set.drop(columns=max_gain_att, axis=1)
+                end_values = split_set[self.class_attr]
+                if all(n == end_values[0] for n in end_values):
+                    node[max_gain_att][1] = end_values[0]
+                elif len(all_atributes) == 0:
+                    values_counter = {k: 0 for k in self.classification_values}
+                    total_values = 0
+                    for value in end_values:
+                        values_counter[value] += 1
+                        total_values += 1
+                    best_val = self.classification_values[0]
+                    best_prob = values_counter[best_val] / total_values
+                    for value in end_values:
+                        curr_prob = values_counter[value] / total_values
+                        if curr_prob > best_prob:
+                            best_val = value
+                            best_prob = curr_prob
+                    node[max_gain_att][1] = best_val
+                else:
+                    node[max_gain_att][1] = build_tree(split_set)
+            else:
+                for val in data[max_gain_att].unique():
+                    split_set = data[data[max_gain_att] == val]
+                    split_set = split_set.drop(columns=max_gain_att, axis=1)
+                    end_values = split_set[self.class_attr]
+                    if all(n == end_values[0] for n in end_values):
+                        node[max_gain_att][val] = end_values[0]
+                    elif len(all_atributes) == 0:
+                        values_counter = {k: 0 for k in self.classification_values}
+                        total_values = 0
+                        for value in end_values:
+                            values_counter[value] += 1
+                            total_values += 1
+                        best_val = self.classification_values[0]
+                        best_prob = values_counter[best_val] / total_values
+                        for value in end_values:
+                            curr_prob = values_counter[value] / total_values
+                            if curr_prob > best_prob:
+                                best_val = value
+                                best_prob = curr_prob
+                        node[max_gain_att][val] = best_val
+                    else:
+                        node[max_gain_att][val] = build_tree(split_set)
+
+            return node
+
+        self.tree = build_tree(temp_data)
+
+    # def build_tree(dataset: pd.DataFrame, tree=None):
+    #     max_entropy_att = choose_biggest_entropy(dataset)
+    #     att_values = dataset[max_entropy_att].unique()
+    #     target_att = dataset.columns[-1]
+    #
+    #     if tree is None:
+    #         tree = {max_entropy_att: {}}
+    #
+    #     for value in att_values:
+    #         split_set = dataset[dataset[max_entropy_att] == value]
+    #         split_set = split_set.drop(columns=max_entropy_att)
+    #         end_values = split_set[target_att].unique()
+    #         nr_val = len(end_values)
+    #         if nr_val != 2:
+    #             tree[max_entropy_att][value] = end_values[0]
+    #         else:
+    #             tree[max_entropy_att][value] = build_tree(split_set)
+    #     return tree
 
     def predict(self):
         pass
