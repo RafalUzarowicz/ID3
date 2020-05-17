@@ -39,8 +39,9 @@ class ID3:
     def entropy(self, data: pd.DataFrame) -> float:
         entro = 0.0
         for val in self.classification_values:
-            fraction = len(data[data[self.class_attr] == val]) / len(data)
-            entro += - fraction * log2(fraction)
+            if len(data[data[self.class_attr] == val]) > 0:
+                fraction = len(data[data[self.class_attr] == val]) / len(data)
+                entro += - fraction * log2(fraction)
         return entro
 
     def average(self, data: pd.DataFrame, attribute):
@@ -53,19 +54,26 @@ class ID3:
         if attribute not in self.dataset.columns or attribute == self.class_attr:
             raise ValueError("Wrong attribute for information gain!")
         info_gain = self.entropy(data)
+        # print(info_gain)
+        # print(len(data))
+
         if self.is_continuous.get(attribute, None) is False:
             for val in data[attribute].unique():
+                print(len(data[data[attribute] == val]))
+                print(data[data[attribute] == val])
+                print(self.entropy(data[data[attribute] == val]))
                 info_gain -= self.entropy(data[data[attribute] == val]) * len(data[data[attribute] == val]) / len(data)
         elif self.is_continuous.get(attribute, None) is True:
             pivot = self.average(data, attribute)
             info_gain -= self.entropy(data[data[attribute] < pivot]) * len(data[data[attribute] < pivot]) / len(data)
             info_gain -= self.entropy(data[data[attribute] >= pivot]) * len(data[data[attribute] >= pivot]) / len(data)
+        # print(info_gain)
         return info_gain
 
     def find_maximum_gain(self, data: pd.DataFrame):
         best_attr = ""
         best_gain = -1.0
-        print(data)
+        # print(data)
         for key in data.columns:
             if key is not self.class_attr:
                 current_gain = self.gain(data, key)
@@ -81,8 +89,8 @@ class ID3:
 
         def build_tree(data: pd.DataFrame):
             max_gain_att = self.find_maximum_gain(data)
-            print(max_gain_att)
-            print(all_atributes)
+            # print(max_gain_att)
+            # print(all_atributes)
             all_atributes.remove(max_gain_att)
             smaller_data = data.drop(columns=max_gain_att, axis=1)
 
@@ -138,8 +146,10 @@ class ID3:
                     split_set = data[data[max_gain_att] == val]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
                     end_values = split_set[self.class_attr]
-                    if all(n == end_values[0] for n in end_values):
-                        node[max_gain_att][val] = end_values[0]
+                    first_val = end_values[0]
+                    print(end_values)
+                    if all(n == first_val for n in end_values):
+                        node[max_gain_att][val] = first_val
                     elif len(all_atributes) == 0:
                         values_counter = {k: 0 for k in self.classification_values}
                         total_values = 0
