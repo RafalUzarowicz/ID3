@@ -34,6 +34,7 @@ class ID3:
                 self.is_continuous[val] = True
             else:
                 self.is_continuous[val] = False
+        print(self.is_continuous)
 
     def entropy(self, data: pd.DataFrame) -> float:
         entro = 0.0
@@ -51,7 +52,7 @@ class ID3:
     def gain(self, data: pd.DataFrame, attribute: str) -> float:
         if attribute not in self.dataset.columns or attribute == self.class_attr:
             raise ValueError("Wrong attribute for information gain!")
-        info_gain = self.entropy(self.dataset)
+        info_gain = self.entropy(data)
         if self.is_continuous.get(attribute, None) is False:
             for val in data[attribute].unique():
                 info_gain -= self.entropy(data[data[attribute] == val]) * len(data[data[attribute] == val]) / len(data)
@@ -64,7 +65,8 @@ class ID3:
     def find_maximum_gain(self, data: pd.DataFrame):
         best_attr = ""
         best_gain = -1.0
-        for key in self.dataset.columns:
+        print(data)
+        for key in data.columns:
             if key is not self.class_attr:
                 current_gain = self.gain(data, key)
                 if current_gain >= best_gain:
@@ -79,6 +81,8 @@ class ID3:
 
         def build_tree(data: pd.DataFrame):
             max_gain_att = self.find_maximum_gain(data)
+            print(max_gain_att)
+            print(all_atributes)
             all_atributes.remove(max_gain_att)
             smaller_data = data.drop(columns=max_gain_att, axis=1)
 
@@ -130,6 +134,7 @@ class ID3:
                     node[max_gain_att][1] = build_tree(split_set)
             else:
                 for val in data[max_gain_att].unique():
+                    print(val)
                     split_set = data[data[max_gain_att] == val]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
                     end_values = split_set[self.class_attr]
