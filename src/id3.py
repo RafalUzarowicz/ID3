@@ -1,12 +1,10 @@
 """
-    author: Joanna Sokołowska
-             https://github.com/jsokolowska
+    authors:
+    Joanna Sokolowska - https://github.com/jsokolowska
+    Rafal Uzarowicz - https://github.com/RafalUzarowicz
 
- todo:
- - wybieranie jak dzielic przedzial liczbowy
- - dowolne wybieranie aatrybutu jako tego na ktory klasyfikujemy
+todo:
  - wczytywanie danych z dowolnego csv
- -
 """
 
 from numpy import log2
@@ -18,20 +16,29 @@ from src.loading_data import load_classic_dataset, load_example_dataset, divide
 class ID3:
     def __init__(self, dataset: pd.DataFrame, classification_attribute: str):
         self.dataset = dataset
+        print(dataset)
         self.class_attr = classification_attribute
         self.tree = None
         if self.class_attr not in self.dataset.columns:
             raise ValueError("Wrong classification attribute name!")
         self.classification_values = list(set(self.dataset[self.class_attr].to_list()))
+        print(self.classification_values)
         self.is_continuous = {}
-        self.prepare_data()
         self.prepare_tree()
+        print(self.tree)
 
     def prepare_data(self):
-        for val in self.dataset.columns:
-            if all(isinstance(n, int) for n in self.dataset[val]) or all(
-                    isinstance(n, float) for n in self.dataset[val]):
+        def is_number(string):
+            try:
+                float(string)
+                return True
+            except ValueError:
+                return False
+        self.is_continuous = {}
+        for val in list(self.dataset.columns):
+            if all(is_number(n) for n in self.dataset[val]):
                 self.is_continuous[val] = True
+                self.dataset[val] = pd.to_numeric(self.dataset[val], errors='coerce')
             else:
                 self.is_continuous[val] = False
         print(self.is_continuous)
@@ -45,35 +52,32 @@ class ID3:
         return entro
 
     def average(self, data: pd.DataFrame, attribute):
-        valSum = 0.0
-        for val in data[attribute].to_list():
-            valSum += val
-        return valSum / len(data[attribute].to_list())
+        if not self.is_continuous[attribute]:
+            raise ValueError("Wrong type of attribute for average function.")
+        values_list = data[attribute].to_list()
+        if not len(values_list) > 0:
+            raise ValueError("Empty dataset.")
+        val_sum = 0.0
+        for val in values_list:
+            val_sum += val
+        return val_sum / len(values_list)
 
     def gain(self, data: pd.DataFrame, attribute: str) -> float:
         if attribute not in self.dataset.columns or attribute == self.class_attr:
             raise ValueError("Wrong attribute for information gain!")
         info_gain = self.entropy(data)
-        # print(info_gain)
-        # print(len(data))
-
         if self.is_continuous.get(attribute, None) is False:
             for val in data[attribute].unique():
-                print(len(data[data[attribute] == val]))
-                print(data[data[attribute] == val])
-                print(self.entropy(data[data[attribute] == val]))
                 info_gain -= self.entropy(data[data[attribute] == val]) * len(data[data[attribute] == val]) / len(data)
         elif self.is_continuous.get(attribute, None) is True:
             pivot = self.average(data, attribute)
-            info_gain -= self.entropy(data[data[attribute] < pivot]) * len(data[data[attribute] < pivot]) / len(data)
             info_gain -= self.entropy(data[data[attribute] >= pivot]) * len(data[data[attribute] >= pivot]) / len(data)
-        # print(info_gain)
+            info_gain -= self.entropy(data[data[attribute] < pivot]) * len(data[data[attribute] < pivot]) / len(data)
         return info_gain
 
     def find_maximum_gain(self, data: pd.DataFrame):
         best_attr = ""
         best_gain = -1.0
-        # print(data)
         for key in data.columns:
             if key is not self.class_attr:
                 current_gain = self.gain(data, key)
@@ -83,181 +87,76 @@ class ID3:
         return best_attr
 
     def prepare_tree(self):
-        all_atributes = list(self.dataset.columns)
-        all_atributes.remove(self.class_attr)
+        all_attributes = list(self.dataset.columns)
+        all_attributes.remove(self.class_attr)
         temp_data = self.dataset
 
         def build_tree(data: pd.DataFrame):
+
+            def end_conditions(end_values:list, key):
+                first_val = end_values[0]
+
+                if all(n == first_val for n in end_values):
+                    return first_val
+                elif len(all_attributes) == 0:
+                    values_counter = {k: 0 for k in self.classification_values}
+                    for value in end_values:
+                        values_counter[value] += 1
+                    best_val = self.classification_values[0]
+                    best_count = values_counter[best_val]
+                    for value in end_values:
+                        curr_count = values_counter[value]
+                        if curr_count > best_count:
+                            best_val = value
+                            best_count = curr_count
+                    return best_val
+                else:
+                    return build_tree(split_set)
+
             max_gain_att = self.find_maximum_gain(data)
-            # print(max_gain_att)
-            # print(all_atributes)
-            all_atributes.remove(max_gain_att)
-            smaller_data = data.drop(columns=max_gain_att, axis=1)
+            all_attributes.remove(max_gain_att)
 
             node = {max_gain_att: {}}
+
             if self.is_continuous[max_gain_att]:
                 node[max_gain_att]["pivot"] = self.average(data, max_gain_att)
+
+                # less than pivot
                 split_set = data[data[max_gain_att] < node[max_gain_att]["pivot"]]
                 split_set = split_set.drop(columns=max_gain_att, axis=1)
-                end_values = split_set[self.class_attr]
-                if all(n == end_values[0] for n in end_values):
-                    node[max_gain_att][0] = end_values[0]
-                elif len(all_atributes) == 0:
-                    values_counter = {k: 0 for k in self.classification_values}
-                    total_values = 0
-                    for value in end_values:
-                        values_counter[value] += 1
-                        total_values += 1
-                    best_val = self.classification_values[0]
-                    best_prob = values_counter[best_val] / total_values
-                    for value in end_values:
-                        curr_prob = values_counter[value] / total_values
-                        if curr_prob > best_prob:
-                            best_val = value
-                            best_prob = curr_prob
-                    node[max_gain_att][0] = best_val
-                else:
-                    node[max_gain_att][0] = build_tree(split_set)
 
+                end_values = list(split_set[self.class_attr])
+                node[max_gain_att][0] = end_conditions(end_values, 0)
+
+                # more than pivot
                 split_set = data[data[max_gain_att] >= node[max_gain_att]["pivot"]]
                 split_set = split_set.drop(columns=max_gain_att, axis=1)
-                end_values = split_set[self.class_attr]
-                if all(n == end_values[0] for n in end_values):
-                    node[max_gain_att][1] = end_values[0]
-                elif len(all_atributes) == 0:
-                    values_counter = {k: 0 for k in self.classification_values}
-                    total_values = 0
-                    for value in end_values:
-                        values_counter[value] += 1
-                        total_values += 1
-                    best_val = self.classification_values[0]
-                    best_prob = values_counter[best_val] / total_values
-                    for value in end_values:
-                        curr_prob = values_counter[value] / total_values
-                        if curr_prob > best_prob:
-                            best_val = value
-                            best_prob = curr_prob
-                    node[max_gain_att][1] = best_val
-                else:
-                    node[max_gain_att][1] = build_tree(split_set)
+
+                end_values = list(split_set[self.class_attr])
+                node[max_gain_att][1] = end_conditions(end_values, 1)
             else:
                 for val in data[max_gain_att].unique():
-                    print(val)
                     split_set = data[data[max_gain_att] == val]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
-                    end_values = split_set[self.class_attr]
-                    first_val = end_values[0]
-                    print(end_values)
-                    if all(n == first_val for n in end_values):
-                        node[max_gain_att][val] = first_val
-                    elif len(all_atributes) == 0:
-                        values_counter = {k: 0 for k in self.classification_values}
-                        total_values = 0
-                        for value in end_values:
-                            values_counter[value] += 1
-                            total_values += 1
-                        best_val = self.classification_values[0]
-                        best_prob = values_counter[best_val] / total_values
-                        for value in end_values:
-                            curr_prob = values_counter[value] / total_values
-                            if curr_prob > best_prob:
-                                best_val = value
-                                best_prob = curr_prob
-                        node[max_gain_att][val] = best_val
-                    else:
-                        node[max_gain_att][val] = build_tree(split_set)
+
+                    end_values = list(split_set[self.class_attr])
+                    node[max_gain_att][val] = end_conditions(end_values, val)
 
             return node
 
+        self.prepare_data()
         self.tree = build_tree(temp_data)
-
-    # def build_tree(dataset: pd.DataFrame, tree=None):
-    #     max_entropy_att = choose_biggest_entropy(dataset)
-    #     att_values = dataset[max_entropy_att].unique()
-    #     target_att = dataset.columns[-1]
-    #
-    #     if tree is None:
-    #         tree = {max_entropy_att: {}}
-    #
-    #     for value in att_values:
-    #         split_set = dataset[dataset[max_entropy_att] == value]
-    #         split_set = split_set.drop(columns=max_entropy_att)
-    #         end_values = split_set[target_att].unique()
-    #         nr_val = len(end_values)
-    #         if nr_val != 2:
-    #             tree[max_entropy_att][value] = end_values[0]
-    #         else:
-    #             tree[max_entropy_att][value] = build_tree(split_set)
-    #     return tree
 
     def predict(self):
         pass
 
 
 dane = load_classic_dataset()
-idetrzy = ID3(dane, "result")
-
-
-# def entropy(dataset: pd.DataFrame):
-#     target_att = dataset.columns[-1]
-#     att_entropy = 0
-#     values = dataset[target_att].unique()
-#     for value in values:
-#         fraction = len(dataset[dataset[target_att] == value]) / len(dataset)
-#         att_entropy -= fraction * log2(fraction)
-#     return att_entropy
-
-
-# def attribute_entropy(attribute: str, dataset: pd.DataFrame):
-#     att_values = dataset[attribute].unique()
-#     dataset_len = len(dataset)
-#     att_entropy = 0
-#     for value in att_values:
-#         split_data = dataset[dataset[attribute] == value]
-#         ent = entropy(split_data)
-#         multiplier = len(split_data) / dataset_len
-#         att_entropy += ent * multiplier
-#     return att_entropy
-
-
-# def choose_biggest_entropy(dataset: pd.DataFrame):
-#     set_entropy = entropy(dataset)
-#
-#     att_entropy = {}
-#     for key in dataset.columns[:-1]:
-#         ent = attribute_entropy(key, dataset)
-#         att_entropy[key] = ent
-#
-#     info_gain = {}
-#     for key, value in att_entropy.items():
-#         info_gain[key] = set_entropy - value
-#     biggest = -1
-#     biggest_att = ""
-#     for key, value in info_gain.items():
-#         if value > biggest:
-#             biggest = value
-#             biggest_att = key
-#     return biggest_att
-
-
-# def build_tree(dataset: pd.DataFrame, tree=None):
-#     max_entropy_att = choose_biggest_entropy(dataset)
-#     att_values = dataset[max_entropy_att].unique()
-#     target_att = dataset.columns[-1]
-#
-#     if tree is None:
-#         tree = {max_entropy_att: {}}
-#
-#     for value in att_values:
-#         split_set = dataset[dataset[max_entropy_att] == value]
-#         split_set = split_set.drop(columns=max_entropy_att)
-#         end_values = split_set[target_att].unique()
-#         nr_val = len(end_values)
-#         if nr_val != 2:
-#             tree[max_entropy_att][value] = end_values[0]
-#         else:
-#             tree[max_entropy_att][value] = build_tree(split_set)
-#     return tree
+d1, d2 = divide(dane, 0.8)
+print(d1)
+print()
+print(d2)
+# idetrzy = ID3(dane, "result")
 
 
 # def predict(tree: dict, dataset: pd.DataFrame):
@@ -297,17 +196,7 @@ idetrzy = ID3(dane, "result")
 #     return root
 
 
-# def predict_for_multiple(dataframe: pd.DataFrame, trees: list):
-#     # todo classify using several trees - all while hoping that the item gets classified as "P" in only one of them
-#     pass
-#
-#
-# def id3_for_multiple(dataframe: pd.DataFrame):
-#     # todo run id3 several times - once for each possible value of target attribute performing P-vs-all
-#     #  classification (copy and clean dataset of redundant non-P values
-#     pass
-#
-#
+
 # def count_good(data_frame: pd.DataFrame):
 #     count = 0
 #     for i, row in data_frame.iterrows():

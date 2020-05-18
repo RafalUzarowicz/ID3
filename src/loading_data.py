@@ -29,8 +29,13 @@ def load_classic_dataset():
     temp = 'hot,hot,hot,mild,cool,cool,cool,mild,cool,mild,mild,mild,hot,mild'.split(',')
     humidity = 'high,high,high,high,normal,normal,normal,high,normal,normal,normal,high,normal,high'.split(",")
     windy = 'false,true,false,false,false,true,true,false,false,false,true,true,false,true'.split(',')
+    number_int = '1,8,2,3,5,1,2,7,6,2,4,7,9,8'.split(',')
+    number_float = '1.0,8.0,2.0,3.0,5.0,1.0,2.0,7.0,6.0,2.0,4.0,7.0,9.0,8.0'.split(',')
     result = 'N,N,P,P,P,N,P,N,P,P,P,P,P,N'.split(",")
+    # result = 'N,N,T,P,P,N,P,T,P,P,T,T,P,N'.split(",")
     dataset = {'outlook': outlook, 'temperature': temp, 'humidity': humidity, 'windy': windy, 'result': result}
+    # dataset = {'outlook': outlook, 'temperature': temp, 'humidity': humidity, 'windy': windy, 'number_int': number_int, 'number_float': number_float, 'result': result}
+    # dataset = {'temperature': temp, 'humidity': humidity, 'number_int': number_int, 'number_float': number_float, 'result': result}
     return pd.DataFrame(dataset)
 
 
