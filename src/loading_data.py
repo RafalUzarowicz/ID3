@@ -24,7 +24,7 @@ def load_example_dataset(which="both"):
     else:
         print("Option not recognized")
     if df is not None:
-        df.drop(["G1", "G2", "G3"], axis=1)
+        df.drop(columns=["G1", "G2", "G3"], axis=1)
     return df
 
 

@@ -2,7 +2,6 @@
     authors:
     Joanna Sokolowska - https://github.com/jsokolowska
     Rafal Uzarowicz - https://github.com/RafalUzarowicz
-
 """
 
 from numpy import log2
@@ -13,6 +12,14 @@ from src.loading_data import load_classic_dataset, load_example_dataset, divide
 
 class ID3:
     def __init__(self, dataset: pd.DataFrame, classification_attribute: str):
+        self.dataset = None
+        self.class_attr = None
+        self.tree = None
+        self.classification_values = None
+        self.is_continuous = None
+        self.prepare_algorithm(dataset, classification_attribute)
+
+    def prepare_algorithm(self, dataset: pd.DataFrame, classification_attribute: str):
         self.dataset = dataset
         print(dataset)
         self.class_attr = classification_attribute
@@ -87,7 +94,7 @@ class ID3:
 
     def prepare_tree(self):
         all_attributes = list(self.dataset.columns)
-        temp_data = self.dataset
+        temp_data = self.dataset.__deepcopy__()
 
         def build_tree(data: pd.DataFrame):
 
@@ -145,12 +152,48 @@ class ID3:
 
             return node
 
-        self.prepare_data()
-        self.tree = build_tree(temp_data)
+        def get_misclasified():
+            # last column is assumed to be predictions and one before that - actual values
+            try:
+                predictions = self.predict(self.dataset)
+            except ValueError:
+                raise ValueError("Cannot calculate missed data on wrong tree.")
+            col_name = "predictions"
+            self.dataset[col_name] = predictions
+            mis = pd.DataFrame()
+            for i, row in self.dataset.iterrows():
+                target = self.dataset.columns[self.dataset.columns.get_loc(self.class_attr)]
+                prediction = self.dataset.columns[self.dataset.columns.get_loc(col_name)]
+                if row[target] != row[prediction]:
+                    mis.append(row)
+            self.dataset = self.dataset.drop(columns=col_name)
+            return mis
+
+        # self.prepare_data()
+        # self.tree = build_tree(temp_data)
+
+        msk = np.random.rand(len(self.dataset)) < 0.4
+        window = self.dataset[msk].__deepcopy__()
+        nr_misses = 1
+        self.tree = None
+
+        while nr_misses > 0:
+            self.prepare_data()
+            self.tree = build_tree(window)
+            print(self.tree)
+            try:
+                misses = get_misclasified()
+            except ValueError:
+                break
+            nr_misses = len(misses)
+            if nr_misses:
+                misses = misses.iloc[:, :-1]
+                window = window.append(misses)
 
     def predict(self, dataset: pd.DataFrame):
         predictions = []
         for index, row in dataset.iterrows():
+            is_found = True
             cut_tree = self.tree
             while type(cut_tree) is dict:
                 key_list = list(cut_tree.keys())
@@ -161,8 +204,11 @@ class ID3:
                     else:
                         cut_tree = cut_tree[attribute][0]
                 else:
+                    if row[attribute] not in cut_tree[attribute].keys():
+                        raise ValueError("Tree is not big enough.")
                     cut_tree = cut_tree[attribute][row[attribute]]
-            predictions.append(cut_tree)
+            if is_found:
+                predictions.append(cut_tree)
         return predictions
 
 
@@ -176,52 +222,21 @@ class ID3:
 # idetrzy = ID3(dane, "Walc")
 
 
-# def id3(dataset: pd.DataFrame):  # may not work properly for small datasets
-#     msk = np.random.rand(len(dataset)) < 0.4
-#     print(msk)
-#     window = dataset[msk].__deepcopy__()
-#     nr_misses = 1  # can be anything greater than 0
-#     root = None
-#
-#     while nr_misses > 0:
-#         root = build_tree(window)
-#         predictions = predict(root, dataset)
-#         col_name = "predictions"
-#         dataset[col_name] = predictions
-#         misses = get_misclasified(dataset)
-#         dataset = dataset.drop(columns=col_name)
-#         nr_misses = len(misses)
-#         if nr_misses:
-#             misses = misses.drop(col_name, axis=1)
-#             window = window.append(misses)
-#
-#     return root
 
 
-def count_good(data_frame: pd.DataFrame):
+def count_good(data_frame: pd.DataFrame, classification_attribute: str):
     count = 0
     for i, row in data_frame.iterrows():
-        if row["result"] == row["pred"]:
+        if row[classification_attribute] == row["pred"]:
             count += 1
     return count
-
-
-def get_misclasified(data_frame: pd.DataFrame):
-    # last column is assumed to be predictions and one before that - actual values
-    mis = pd.DataFrame()
-    for i, row in data_frame.iterrows():
-        target = data_frame.columns[-2]
-        prediction = data_frame.columns[-1]
-        if row[target] != row[prediction]:
-            mis.append(row)
-    return mis
 
 
 data = load_classic_dataset()
 idetrzy = ID3(data, "result")
 predictions = idetrzy.predict(data)
 data["pred"] = predictions
-res = count_good(data)
+res = count_good(data, idetrzy.class_attr)
 if res == len(data):
     print("Yupi ya yey!")
 else:
