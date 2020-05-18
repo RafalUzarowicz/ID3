@@ -3,8 +3,6 @@
     Joanna Sokolowska - https://github.com/jsokolowska
     Rafal Uzarowicz - https://github.com/RafalUzarowicz
 
-todo:
- - wczytywanie danych z dowolnego csv
 """
 
 from numpy import log2
@@ -34,6 +32,8 @@ class ID3:
                 return True
             except ValueError:
                 return False
+
+        self.classification_values = list(set(self.dataset[self.class_attr].to_list()))
         self.is_continuous = {}
         for val in list(self.dataset.columns):
             if all(is_number(n) for n in self.dataset[val]):
@@ -41,7 +41,6 @@ class ID3:
                 self.dataset[val] = pd.to_numeric(self.dataset[val], errors='coerce')
             else:
                 self.is_continuous[val] = False
-        print(self.is_continuous)
 
     def entropy(self, data: pd.DataFrame) -> float:
         entro = 0.0
@@ -79,7 +78,7 @@ class ID3:
         best_attr = ""
         best_gain = -1.0
         for key in data.columns:
-            if key is not self.class_attr:
+            if not key == self.class_attr:
                 current_gain = self.gain(data, key)
                 if current_gain >= best_gain:
                     best_attr = key
@@ -88,31 +87,33 @@ class ID3:
 
     def prepare_tree(self):
         all_attributes = list(self.dataset.columns)
-        all_attributes.remove(self.class_attr)
         temp_data = self.dataset
 
         def build_tree(data: pd.DataFrame):
 
-            def end_conditions(end_values:list, key):
-                first_val = end_values[0]
-
-                if all(n == first_val for n in end_values):
-                    return first_val
-                elif len(all_attributes) == 0:
+            def end_conditions(end_val: list, curr_dataset: pd.DataFrame):
+                # print(end_val)
+                if len(all_attributes) == 1:
                     values_counter = {k: 0 for k in self.classification_values}
-                    for value in end_values:
+                    for value in end_val:
                         values_counter[value] += 1
                     best_val = self.classification_values[0]
                     best_count = values_counter[best_val]
-                    for value in end_values:
+                    for value in end_val:
                         curr_count = values_counter[value]
                         if curr_count > best_count:
                             best_val = value
                             best_count = curr_count
                     return best_val
-                else:
-                    return build_tree(split_set)
 
+                first_val = end_val[0]
+
+                if all(n == first_val for n in end_val):
+                    return first_val
+
+                return build_tree(curr_dataset)
+
+            data = data[all_attributes]
             max_gain_att = self.find_maximum_gain(data)
             all_attributes.remove(max_gain_att)
 
@@ -124,54 +125,55 @@ class ID3:
                 # less than pivot
                 split_set = data[data[max_gain_att] < node[max_gain_att]["pivot"]]
                 split_set = split_set.drop(columns=max_gain_att, axis=1)
-
-                end_values = list(split_set[self.class_attr])
-                node[max_gain_att][0] = end_conditions(end_values, 0)
+                if len(split_set) > 0:
+                    end_values = list(split_set[self.class_attr])
+                    node[max_gain_att][0] = end_conditions(end_values, split_set)
 
                 # more than pivot
                 split_set = data[data[max_gain_att] >= node[max_gain_att]["pivot"]]
                 split_set = split_set.drop(columns=max_gain_att, axis=1)
 
                 end_values = list(split_set[self.class_attr])
-                node[max_gain_att][1] = end_conditions(end_values, 1)
+                node[max_gain_att][1] = end_conditions(end_values, split_set)
             else:
                 for val in data[max_gain_att].unique():
                     split_set = data[data[max_gain_att] == val]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
 
                     end_values = list(split_set[self.class_attr])
-                    node[max_gain_att][val] = end_conditions(end_values, val)
+                    node[max_gain_att][val] = end_conditions(end_values, split_set)
 
             return node
 
         self.prepare_data()
         self.tree = build_tree(temp_data)
 
-    def predict(self):
-        pass
+    def predict(self, dataset: pd.DataFrame):
+        predictions = []
+        for index, row in dataset.iterrows():
+            cut_tree = self.tree
+            while type(cut_tree) is dict:
+                key_list = list(cut_tree.keys())
+                attribute = key_list[0]
+                if self.is_continuous.get(attribute):
+                    if row[attribute] >= cut_tree[attribute]["pivot"]:
+                        cut_tree = cut_tree[attribute][1]
+                    else:
+                        cut_tree = cut_tree[attribute][0]
+                else:
+                    cut_tree = cut_tree[attribute][row[attribute]]
+            predictions.append(cut_tree)
+        return predictions
 
 
-dane = load_classic_dataset()
-d1, d2 = divide(dane, 0.8)
-print(d1)
-print()
-print(d2)
+# dane = load_classic_dataset()
+# dane = load_example_dataset()
+# d1, d2 = divide(dane, 0.8)
+# print(d1)
+# print()
+# print(d2)
 # idetrzy = ID3(dane, "result")
-
-
-# def predict(tree: dict, dataset: pd.DataFrame):
-#     predictions = []
-#     for index, row in dataset.iterrows():
-#         key_list = list(tree.keys())
-#         attribute = key_list[0]
-#         cut_tree = tree[key_list[0]][row[attribute]]
-#         while type(cut_tree) is dict:
-#             key_list = list(cut_tree.keys())
-#             attribute = key_list[0]
-#             cut_tree = cut_tree[key_list[0]][row[attribute]]
-#         predictions.append(cut_tree)
-#
-#     return predictions
+# idetrzy = ID3(dane, "Walc")
 
 
 # def id3(dataset: pd.DataFrame):  # may not work properly for small datasets
@@ -196,35 +198,31 @@ print(d2)
 #     return root
 
 
+def count_good(data_frame: pd.DataFrame):
+    count = 0
+    for i, row in data_frame.iterrows():
+        if row["result"] == row["pred"]:
+            count += 1
+    return count
 
-# def count_good(data_frame: pd.DataFrame):
-#     count = 0
-#     for i, row in data_frame.iterrows():
-#         if row[data_frame.columns[-1]] == row[data_frame.columns[-2]]:
-#             count += 1
-#     return count
-#
-#
-# def get_misclasified(data_frame: pd.DataFrame):
-#     # last column is assumed to be predictions and one before that - actual values
-#     mis = pd.DataFrame()
-#     for i, row in data_frame.iterrows():
-#         target = data_frame.columns[-2]
-#         prediction = data_frame.columns[-1]
-#         if row[target] != row[prediction]:
-#             mis.append(row)
-#     return mis
-#
-#
-# # todo - clean dataset - several attributes have a bit too many values - G1, G2, G3 and absences -> divide them into
-# #  several ranges and assign new values according to that
-# #   !!! throughout whole process it is assumed that target attiribute is the last column of dataframe
-# data = load_classic_dataset()
-# root = id3(data)
-# predictions = predict(root, data)
-# data["pred"] = predictions
-# res = count_good(data)
-# if res == len(data):
-#     print("Yupi ya yey!")
-# else:
-#     print("Res: " + str(res) + " out of " + str(len(data)))
+
+def get_misclasified(data_frame: pd.DataFrame):
+    # last column is assumed to be predictions and one before that - actual values
+    mis = pd.DataFrame()
+    for i, row in data_frame.iterrows():
+        target = data_frame.columns[-2]
+        prediction = data_frame.columns[-1]
+        if row[target] != row[prediction]:
+            mis.append(row)
+    return mis
+
+
+data = load_classic_dataset()
+idetrzy = ID3(data, "result")
+predictions = idetrzy.predict(data)
+data["pred"] = predictions
+res = count_good(data)
+if res == len(data):
+    print("Yupi ya yey!")
+else:
+    print("Res: " + str(res) + " out of " + str(len(data)))

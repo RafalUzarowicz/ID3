@@ -1,6 +1,10 @@
 """
-    author: Joanna Sokołowska
-             https://github.com/jsokolowska
+    authors:
+    Joanna Sokolowska - https://github.com/jsokolowska
+    Rafal Uzarowicz - https://github.com/RafalUzarowicz
+
+todo:
+ - read data from any csv
 """
 
 import pandas as pd
