@@ -3,9 +3,11 @@ from src.loading_data import *
 
 def main():
     id3_data_loader = ID3DatasetLoader()
-    id3_data_loader.load_classic_dataset()
+    # id3_data_loader.load_classic_dataset()
+    id3_data_loader.load_classic_with_numbers_dataset()
     data = id3_data_loader.get_dataset()
     idetrzy = ID3(data, "result")
+    print(idetrzy.find_average_attribute_values_number())
     print(idetrzy)
     predictions = idetrzy.predict(data)
     data["pred"] = predictions
