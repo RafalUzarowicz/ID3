@@ -10,8 +10,8 @@ import numpy as np
 
 
 class ID3:
-    def __init__(self, dataset: pd.DataFrame = None, classification_attribute: str = None):
-        self.use_ranges_in_numeric_attributes = True
+    def __init__(self, dataset: pd.DataFrame = None, classification_attribute: str = None, use_ranges_for_numeric=True, use_window=True):
+        self.use_ranges_for_numeric = use_ranges_for_numeric
         self.dataset = None
         self.classification_attribute = None
         self.tree = None
@@ -19,6 +19,7 @@ class ID3:
         self.is_attribute_numeric = None
         self.average_attribute_values_number = None
         self.attribute_range_dividers = {}
+        self.use_window=use_window
         if dataset is not None and classification_attribute is not None:
             self.initialize_algorithm(dataset, classification_attribute)
         else:
@@ -57,14 +58,14 @@ class ID3:
             else:
                 self.is_attribute_numeric[val] = False
 
-        if self.use_ranges_in_numeric_attributes:
+        if self.use_ranges_for_numeric:
             for attribute in self.dataset.columns:
                 if self.is_attribute_numeric[attribute] and attribute != self.classification_attribute:
                     minimum_attribute_value = self.dataset[attribute].min()
                     maximum_attribute_value = self.dataset[attribute].max()
                     self.attribute_range_dividers[attribute] = []
                     for i in range(1, self.average_attribute_values_number):
-                        self.attribute_range_dividers[attribute].append(minimum_attribute_value+((maximum_attribute_value-minimum_attribute_value)*i/self.average_attribute_values_number))
+                        self.attribute_range_dividers[attribute].append(minimum_attribute_value + ((maximum_attribute_value-minimum_attribute_value)*i/self.average_attribute_values_number))
 
     def entropy(self, data: pd.DataFrame) -> float:
         entropy = 0.0
@@ -106,7 +107,7 @@ class ID3:
             for val in data[attribute].unique():
                 info_gain -= self.entropy(data[data[attribute] == val]) * len(data[data[attribute] == val]) / len(data)
         elif self.is_attribute_numeric.get(attribute, False) is True:
-            if self.use_ranges_in_numeric_attributes:
+            if self.use_ranges_for_numeric:
                 data[attribute] = pd.to_numeric(data[attribute], errors='coerce')
                 info_gain -= self.entropy(data[data[attribute] <= self.attribute_range_dividers[attribute][0]]) * len(data[data[attribute] <= self.attribute_range_dividers[attribute][0]]) / len(data)
                 for i in range(1, len(self.attribute_range_dividers[attribute])-1):
@@ -165,7 +166,7 @@ class ID3:
             node = {max_gain_att: {}}
 
             if self.is_attribute_numeric[max_gain_att]:
-                if self.use_ranges_in_numeric_attributes:
+                if self.use_ranges_for_numeric:
                     split_set = data[data[max_gain_att] <= self.attribute_range_dividers[max_gain_att][0]]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
                     if len(split_set) > 0:
@@ -210,32 +211,33 @@ class ID3:
 
             return node
 
-        def get_misclasified() -> pd.DataFrame:
+        msk = np.random.rand(len(self.dataset)) < 0.4
+        window = self.dataset[msk]
+
+        def get_misclassified() -> pd.DataFrame:
             predictions = self.predict(self.dataset)
             col_name = "predictions"
             self.dataset[col_name] = predictions
-            mis = pd.DataFrame()
-            for i, row in self.dataset.iterrows():
-                target = self.dataset.columns[self.dataset.columns.get_loc(self.classification_attribute)]
-                prediction = self.dataset.columns[self.dataset.columns.get_loc(col_name)]
-                if row[target] != row[prediction]:
-                    mis.append(row)
-            self.dataset = self.dataset.drop(columns=col_name)
+            mis = self.dataset[self.dataset[col_name] != self.dataset[self.classification_attribute]]
+            self.dataset = self.dataset.drop(col_name, axis=1)
+            mis = mis.drop(col_name, axis=1)
             return mis
 
-        msk = np.random.rand(len(self.dataset)) < 0.4
-        window = self.dataset[msk].__deepcopy__()
         nr_misses = 1
         self.tree = None
-
-        while nr_misses > 0:
+        if self.use_window:
+            while nr_misses > 0:
+                nr = len(window)
+                self.prepare_data()
+                self.tree = build_tree(window)
+                all_attributes = list(self.dataset.columns)
+                misses = get_misclassified()
+                nr_misses = len(misses)
+                if nr_misses:
+                    window = pd.concat([window, misses]).drop_duplicates().reset_index(drop=True)
+        else:
             self.prepare_data()
-            self.tree = build_tree(window)
-            misses = get_misclasified()
-            nr_misses = len(misses)
-            if nr_misses:
-                misses = misses.iloc[:, :-1]
-                window = window.append(misses)
+            self.tree = build_tree(self.dataset)
 
     def predict(self, dataset: pd.DataFrame) -> []:
         predictions = []
@@ -246,7 +248,7 @@ class ID3:
                 key_list = list(cut_tree.keys())
                 attribute = key_list[0]
                 if self.is_attribute_numeric.get(attribute, False):
-                    if self.use_ranges_in_numeric_attributes:
+                    if self.use_ranges_for_numeric:
                         if row[attribute] > self.attribute_range_dividers[attribute][-1]:
                             cut_tree = cut_tree[attribute][len(self.attribute_range_dividers[attribute])-1]
                         else:
@@ -270,6 +272,7 @@ class ID3:
                 predictions.append(cut_tree)
             else:
                 predictions.append(None)
+            print(index)
         return predictions
 
 

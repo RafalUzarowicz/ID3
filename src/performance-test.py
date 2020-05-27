@@ -1,10 +1,47 @@
-# """
-#     author: Joanna Sokołowska - https://github.com/jsokolowska
-#  """
-# #
-# # from src.loading_data import load_example_dataset, load_data_from_file
-# # import numpy as np
-# # import pandas as pd
+"""
+    author: Joanna Sokołowska - https://github.com/jsokolowska
+
+ """
+
+import numpy as np
+import pandas as pd
+
+from src import ID3DatasetLoader, ID3, count_good
+
+# loader = ID3DatasetLoader()
+# loader.load_example_dataset()
+# data = loader.get_dataset()
+# id3 = ID3(data, "Walc")
+#
+# predictions = id3.predict(data)
+# print("Results")
+# print(predictions)
+#
+# loader = ID3DatasetLoader()
+# loader.load_example_dataset()
+# data = loader.get_dataset()
+# id3 = ID3(data, "Walc")
+# predictions = id3.predict(data)
+# print("Results")
+# print(predictions)
+id3_data_loader = ID3DatasetLoader()
+id3_data_loader.load_example_dataset()
+data = id3_data_loader.get_dataset()
+idetrzy = ID3(data, "Walc", True, False)
+
+print(idetrzy.find_average_attribute_values_number())
+print(idetrzy)
+predictions = idetrzy.predict(data)
+data["pred"] = predictions
+res = count_good(data, idetrzy.classification_attribute)
+if res == len(data):
+    print("Yupi ya yey!")
+else:
+    print("Res: " + str(res) + " out of " + str(len(data)))
+
+
+
+
 #
 #
 # def noise_level_test(target_att, step=5, repeats=25, file_name=None):
