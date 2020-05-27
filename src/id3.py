@@ -1,7 +1,7 @@
 """
     authors:
-    Joanna Sokolowska - https://github.com/jsokolowska
-    Rafal Uzarowicz - https://github.com/RafalUzarowicz
+    Joanna Sokołowska - https://github.com/jsokolowska
+    Rafał Uzarowicz - https://github.com/RafalUzarowicz
 """
 
 from numpy import log2
