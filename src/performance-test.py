@@ -25,22 +25,25 @@ from src import ID3DatasetLoader, ID3, count_good
 # print("Results")
 # print(predictions)
 id3_data_loader = ID3DatasetLoader()
-id3_data_loader.load_example_dataset()
+id3_data_loader.load_example_dataset(which_classification_attribute="Dalc")
 data = id3_data_loader.get_dataset()
-idetrzy = ID3(data, "Walc", True, False)
+msk = np.random.rand(len(data)) < 0.05
+data = data[msk].copy()
+idetrzy = ID3(data, "Dalc", True, False)
 
-print(idetrzy.find_average_attribute_values_number())
-print(idetrzy)
+# print(idetrzy.find_average_attribute_values_number())
+# print(idetrzy)
 predictions = idetrzy.predict(data)
 data["pred"] = predictions
-res = count_good(data, idetrzy.classification_attribute)
+# data["prob"] = probability
+res = count_good(data, idetrzy.target_att)
+# avg = data["prob"].mean()
 if res == len(data):
     print("Yupi ya yey!")
+    print(res)
 else:
     print("Res: " + str(res) + " out of " + str(len(data)))
-
-
-
+    print("Accuracy: " + str(100 * res/len(data)) + "%")
 
 #
 #
