@@ -65,6 +65,7 @@ class ID3:
                     for i in range(1, self.avg_att_values_for_num):
                         divider = min_att_value + ((max_att_value - min_att_value) * i / self.avg_att_values_for_num)
                         self.att_range_dividers[attribute].append(divider)
+                    self.att_range_dividers[attribute].append(max_att_value)
 
     def entropy(self, data: pd.DataFrame) -> float:
         entropy = 0.0
@@ -141,6 +142,7 @@ class ID3:
         self.cntr = 0
 
         def build_tree(data: pd.DataFrame) -> {}:
+            all_attributes = list(data.columns)
 
             def end_conditions(end_val: list, curr_dataset: pd.DataFrame):
                 if len(all_attributes) == 1:
@@ -189,14 +191,14 @@ class ID3:
                             end_values = list(split_set[self.target_att])
                             node[max_gain_att][i] = end_conditions(end_values, split_set)
 
-                    last_div = self.att_range_dividers[max_gain_att][-1]
-                    split_set = data[data[max_gain_att] > self.att_range_dividers[max_gain_att][-1]]
+                    div = self.att_range_dividers[max_gain_att]
+                    split_set = data[data[max_gain_att] < self.att_range_dividers[max_gain_att][-1]]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
 
                     if len(split_set) > 0:
                         end_values = list(split_set[self.target_att])
                         node[max_gain_att][len(self.att_range_dividers[max_gain_att]) - 1] = end_conditions(end_values, split_set)
-
+                    div = 3
                 else:
                     node[max_gain_att]["pivot"] = self.find_pivot(data, max_gain_att)
 
@@ -238,8 +240,7 @@ class ID3:
         nr_misses = 1
         self.tree = None
         if self.use_window:
-            while nr_misses > 0:
-                nr = len(window)
+            while nr_misses > 0 and len(window) < len(self.dataset):
                 self.prepare_data()
                 self.tree = build_tree(window)
                 all_attributes = list(self.dataset.columns)
@@ -250,7 +251,6 @@ class ID3:
         else:
             self.prepare_data()
             self.tree = build_tree(self.dataset)
-            print("How many times leaf was not pure? " + str(self.cntr))
 
     def predict(self, dataset: pd.DataFrame) -> []:
         predictions = []
