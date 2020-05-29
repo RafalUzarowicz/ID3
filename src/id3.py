@@ -10,7 +10,8 @@ import numpy as np
 
 
 class ID3:
-    def __init__(self, dataset: pd.DataFrame = None, target_att: str = None, use_ranges_for_numeric=True, use_window=True):
+    def __init__(self, dataset: pd.DataFrame = None, target_att: str = None,
+                 use_ranges_for_numeric=False, use_window=False):
         self.use_ranges_for_numeric = use_ranges_for_numeric
         self.dataset = None
         self.target_att = None
