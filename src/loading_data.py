@@ -2,13 +2,10 @@
     authors:
     Joanna Sokołowska - https://github.com/jsokolowska
     Rafał Uzarowicz - https://github.com/RafalUzarowicz
-
-todo:
- - add some protection to data loading
 """
 
 import pandas as pd
-import numpy as npkażda
+import numpy as np
 
 
 def divide(df: pd.DataFrame, training_set_percent=0.8):
