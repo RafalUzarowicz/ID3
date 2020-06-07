@@ -49,16 +49,6 @@ class ID3DatasetLoader:
             df = pd.concat([df1, df2], ignore_index=True)
         else:
             raise ValueError("Option not recognized.")
-        # if df is not None:
-        #     # df.drop(columns=["G1", "G2", "G3"], axis=1)
-        #     if which_classification_attribute == "Walc":
-        #         df.drop(columns=["Dalc"], axis=1, inplace=True)
-        #     elif which_classification_attribute == "Dalc":
-        #         df.drop(columns=["Walc"], axis=1, inplace=True)
-        #     elif which_classification_attribute == "both":
-        #         pass
-        #     else:
-        #         raise ValueError("Attribute not recognized.")
         self.dataset = df
         self.check_if_dataset_is_good()
 

@@ -22,7 +22,6 @@ class ID3:
         self.att_range_dividers = {}
         self.use_window = use_window
         self.initialize_algorithm(dataset, target_att, numeric_att)
-        self.cntr = 0
 
     def __str__(self):
         return "Classification values: " + str(self.target_att_values) + "\nTree: " + str(self.tree)
@@ -35,7 +34,6 @@ class ID3:
         self.tree = None
         if self.target_att not in self.dataset.columns:
             raise ValueError("Wrong classification attribute name!")
-        # self.target_att_values = list(set(self.dataset[self.target_att].to_list()))
         self.is_att_num = {}
         self.prepare_tree(numeric_att)
 
@@ -97,7 +95,7 @@ class ID3:
             raise ValueError("Empty dataset!")
 
     def find_pivot(self, data: pd.DataFrame, attribute: str) -> float:
-        # average value for now
+        # pivot is chosen as average value
         if not self.is_att_num[attribute]:
             raise ValueError("Wrong type of attribute for average function.")
         values_list = data[attribute].to_list()
@@ -150,7 +148,6 @@ class ID3:
 
     def prepare_tree(self, numeric_att):
         all_attributes = list(self.dataset.columns)
-        self.cntr = 0
 
         def build_tree(data: pd.DataFrame) -> {}:
             all_attributes = list(data.columns)
@@ -158,8 +155,6 @@ class ID3:
             def end_conditions(end_val: list, curr_dataset: pd.DataFrame):
                 if len(all_attributes) == 1:
                     values_counter = {k: 0 for k in self.target_att_values}
-                    if len(end_val) > 1:
-                        self.cntr += 1
                     for value in end_val:
                         values_counter[value] += 1
                     best_val = self.target_att_values[0]
@@ -202,7 +197,6 @@ class ID3:
                             end_values = list(split_set[self.target_att])
                             node[max_gain_att][i] = end_conditions(end_values, split_set)
 
-                    div = self.att_range_dividers[max_gain_att]
                     split_set = data[data[max_gain_att] < self.att_range_dividers[max_gain_att][-1]]
                     split_set = split_set.drop(columns=max_gain_att, axis=1)
 
@@ -210,7 +204,6 @@ class ID3:
                         end_values = list(split_set[self.target_att])
                         node[max_gain_att][len(self.att_range_dividers[max_gain_att]) - 1] = end_conditions(end_values,
                                                                                                             split_set)
-                    div = 3
                 else:
                     node[max_gain_att]["pivot"] = self.find_pivot(data, max_gain_att)
 
@@ -297,7 +290,6 @@ class ID3:
                 predictions.append(cut_tree)
             else:
                 predictions.append(None)
-            # print(index)
         return predictions
 
 

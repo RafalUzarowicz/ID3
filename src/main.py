@@ -1,7 +1,5 @@
 """
-    authors:
-    Joanna Sokołowska - https://github.com/jsokolowska
-    Rafał Uzarowicz - https://github.com/RafalUzarowicz
+    author: Rafał Uzarowicz - https://github.com/RafalUzarowicz
 """
 import argparse
 from pathlib import Path
@@ -58,6 +56,3 @@ else:
             data.to_json("id3_results.json")
         elif args.file_type is "excel":
             data.to_excel("id3_results.xlsx")
-        else:
-            is_loaded = False
-            print("File type not supported.\n")
