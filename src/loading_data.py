@@ -38,14 +38,6 @@ class ID3DatasetLoader:
         self.dataset = pd.read_excel(filepath)
         self.check_if_dataset_is_good()
 
-    def load_sql_table_dataset(self, filepath: str) -> None:
-        self.dataset = pd.read_sql_table(filepath)
-        self.check_if_dataset_is_good()
-
-    def load_table_dataset(self, filepath: str) -> None:
-        self.dataset = pd.read_table(filepath)
-        self.check_if_dataset_is_good()
-
     def load_example_dataset(self, which: str="both", which_classification_attribute: str = "Walc"):
         if which == "mat":
             df = pd.read_csv("../example_datasets/student-mat.csv")

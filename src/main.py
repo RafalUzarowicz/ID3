@@ -18,7 +18,7 @@ parser.add_argument('target_att', help="attribute to classify with", required=Tr
 
 parser.add_argument('-t', '--file_type', action='store_true', default="csv",
                     help="chooses data files types."
-                         "available types: csv json excel sql table")
+                         "available types: csv json xlsx")
 parser.add_argument('-r', '--use_ranges_for_numeric', action='store_true', default=False,
                     help="enables using ranges in tree creation"
                     "if this value is false pivot dividing is used for numeric attributes")
@@ -40,12 +40,8 @@ else:
         loader.load_csv_dataset(args.filepath_training)
     elif args.file_type is "json":
         loader.load_json_dataset(args.filepath_training)
-    elif args.file_type is "excel":
+    elif args.file_type is "xlsx":
         loader.load_excel_dataset(args.filepath_training)
-    elif args.file_type is "sql":
-        loader.load_sql_table_dataset(args.filepath_training)
-    elif args.file_type is "table":
-        loader.load_table_dataset(args.filepath_training)
     else:
         is_loaded = False
         print("File type not supported.\n")
@@ -54,4 +50,14 @@ else:
         data = loader.get_dataset()
         id3 = ID3(data, args.target_att, args.use_ranges_for_numeric, args.use_window, list(args.numeric_attributes))
         predictions = id3.predict(data)
-        print(predictions)
+        # print(predictions)
+        data["predictions"] = predictions
+        if args.file_type is "csv":
+            data.to_csv("id3_results.csv")
+        elif args.file_type is "json":
+            data.to_json("id3_results.json")
+        elif args.file_type is "excel":
+            data.to_excel("id3_results.xlsx")
+        else:
+            is_loaded = False
+            print("File type not supported.\n")
