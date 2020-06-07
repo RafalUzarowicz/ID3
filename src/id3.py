@@ -11,7 +11,7 @@ import numpy as np
 
 class ID3:
     def __init__(self, dataset: pd.DataFrame = None, target_att: str = None,
-                 use_ranges_for_numeric=False, use_window=False):
+                 use_ranges_for_numeric=False, use_window=False, numeric_att=None):
         self.use_ranges_for_numeric = use_ranges_for_numeric
         self.dataset = None
         self.target_att = None
@@ -21,13 +21,13 @@ class ID3:
         self.avg_att_values_for_num = None
         self.att_range_dividers = {}
         self.use_window = use_window
-        self.initialize_algorithm(dataset, target_att)
-        self.cntr= 0
+        self.initialize_algorithm(dataset, target_att, numeric_att)
+        self.cntr = 0
 
     def __str__(self):
         return "Classification values: " + str(self.target_att_values) + "\nTree: " + str(self.tree)
 
-    def initialize_algorithm(self, dataset: pd.DataFrame, target_att: str) -> None:
+    def initialize_algorithm(self, dataset: pd.DataFrame, target_att: str, numeric_att) -> None:
         if dataset is None or target_att is None:
             raise ValueError("Wrong arguments.")
         self.dataset = dataset
@@ -37,9 +37,9 @@ class ID3:
             raise ValueError("Wrong classification attribute name!")
         # self.target_att_values = list(set(self.dataset[self.target_att].to_list()))
         self.is_att_num = {}
-        self.prepare_tree()
+        self.prepare_tree(numeric_att)
 
-    def prepare_data(self) -> None:
+    def prepare_data(self, numeric_att) -> None:
         def is_number(string):
             try:
                 float(string)
@@ -50,12 +50,20 @@ class ID3:
         self.target_att_values = list(set(self.dataset[self.target_att].to_list()))
         self.is_att_num = {}
         self.avg_att_values_for_num = int(self.find_average_attribute_values_number())
-        for val in list(self.dataset.columns):
-            if all(is_number(n) for n in self.dataset[val]):
-                self.is_att_num[val] = True
-                self.dataset[val] = pd.to_numeric(self.dataset[val], errors='coerce')
-            else:
-                self.is_att_num[val] = False
+        if numeric_att:
+            for column in self.dataset.columns:
+                if column in numeric_att:
+                    self.is_att_num[column] = True
+                    self.dataset[column] = pd.to_numeric(self.dataset[column], errors='coerce')
+                else:
+                    self.is_att_num[column] = False
+        else:
+            for val in list(self.dataset.columns):
+                if all(is_number(n) for n in self.dataset[val]):
+                    self.is_att_num[val] = True
+                    self.dataset[val] = pd.to_numeric(self.dataset[val], errors='coerce')
+                else:
+                    self.is_att_num[val] = False
 
         if self.use_ranges_for_numeric:
             for attribute in self.dataset.columns:
@@ -84,7 +92,7 @@ class ID3:
                 sum_of_unique_attribute_values += len(self.dataset[key].unique())
                 counter += 1
         if counter > 0:
-            return sum_of_unique_attribute_values/counter
+            return sum_of_unique_attribute_values / counter
         else:
             raise ValueError("Empty dataset!")
 
@@ -123,8 +131,10 @@ class ID3:
                     data[data[attribute] > self.att_range_dividers[attribute][-1]]) / len(data)
             else:
                 pivot = self.find_pivot(data, attribute)
-                info_gain -= self.entropy(data[data[attribute] >= pivot]) * len(data[data[attribute] >= pivot]) / len(data)
-                info_gain -= self.entropy(data[data[attribute] < pivot]) * len(data[data[attribute] < pivot]) / len(data)
+                info_gain -= self.entropy(data[data[attribute] >= pivot]) * len(data[data[attribute] >= pivot]) / len(
+                    data)
+                info_gain -= self.entropy(data[data[attribute] < pivot]) * len(data[data[attribute] < pivot]) / len(
+                    data)
         return info_gain
 
     def find_maximum_gain(self, data: pd.DataFrame) -> str:
@@ -138,7 +148,7 @@ class ID3:
                     best_gain = current_gain
         return best_attr
 
-    def prepare_tree(self):
+    def prepare_tree(self, numeric_att):
         all_attributes = list(self.dataset.columns)
         self.cntr = 0
 
@@ -198,7 +208,8 @@ class ID3:
 
                     if len(split_set) > 0:
                         end_values = list(split_set[self.target_att])
-                        node[max_gain_att][len(self.att_range_dividers[max_gain_att]) - 1] = end_conditions(end_values, split_set)
+                        node[max_gain_att][len(self.att_range_dividers[max_gain_att]) - 1] = end_conditions(end_values,
+                                                                                                            split_set)
                     div = 3
                 else:
                     node[max_gain_att]["pivot"] = self.find_pivot(data, max_gain_att)
@@ -242,7 +253,7 @@ class ID3:
         self.tree = None
         if self.use_window:
             while nr_misses > 0 and len(window) < len(self.dataset):
-                self.prepare_data()
+                self.prepare_data(numeric_att)
                 self.tree = build_tree(window)
                 all_attributes = list(self.dataset.columns)
                 misses = get_misclassified()
@@ -250,7 +261,7 @@ class ID3:
                 if nr_misses:
                     window = pd.concat([window, misses]).drop_duplicates().reset_index(drop=True)
         else:
-            self.prepare_data()
+            self.prepare_data(numeric_att)
             self.tree = build_tree(self.dataset)
 
     def predict(self, dataset: pd.DataFrame) -> []:
