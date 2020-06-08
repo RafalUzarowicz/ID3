@@ -2,6 +2,9 @@ import unittest
 from src.id3 import *
 from src.loading_data import *
 
+"""
+    authors: Rafał Uzarowicz - https://github.com/RafalUzarowicz
+"""
 
 class ID3Test(unittest.TestCase):
 
