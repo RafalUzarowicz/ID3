@@ -62,7 +62,6 @@ def cross_validate(division_num: int = 10):
                 test["pred"] = ranges.predict(test)
                 ranges_acc = len(test[test[target] == test["pred"]]) / len(test)
                 ranges_vals.append(ranges_acc * 100)
-                print("R: " + str(ranges_vals) + " P: " + str(pivot_vals) + " M: " + str(mixed_vals))
 
         file.write("Mixed, ranges, pivot\n")
         for numeric, name in [mixed_vals, ranges_vals, pivot_vals], ["Mixed: ", "Ranges: ", "Pivot: "]:
@@ -169,5 +168,14 @@ def test_train_size(*, start=0.4, stop=1, step=0.1, repeats=10):
             curr_size += step
 
 
+print("Performing cross validation for all numeric methods...")
 cross_validate()
+print("Results have been saved to cross_validate_test.txt\n")
+print("Performing training set size test...")
+test_train_size()
+print("Results have been saved to test_train_size.txt\n")
+print("Performing noise level test...\n [Warining: it will take a lot of time, "
+      "for test results please do not kill the process until this test has been finished]")
+noise_level_test()
+print("Results have been saved to noise_text.txt\n")
 
