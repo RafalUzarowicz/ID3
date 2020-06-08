@@ -76,18 +76,6 @@ class ID3Test(unittest.TestCase):
 
         self.assertEqual(res, 14)
 
-    def test_id3(self):
-        loader = ID3DatasetLoader()
-        loader.load_classic_dataset()
-        data = loader.get_dataset()
-        id3_algo = ID3(data, "result")
-
-        predictions = id3_algo.predict(data)
-        data["pred"] = predictions
-        res = count_good(data, id3_algo.target_att)
-
-        self.assertEqual(res, 14)
-
 
 if __name__ == '__main__':
     unittest.main()
