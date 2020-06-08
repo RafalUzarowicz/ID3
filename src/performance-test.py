@@ -49,47 +49,6 @@ def cross_validate(division_num: int = 10, numeric=["age", "absences", "G1", "G2
             file.write(str(accuracy))
 
 
-def compare_numeric(repeats: int = 10, numeric=["age", "absences", "G1", "G2", "G3"]):
-    with open("compare_numeric_test.txt", 'w') as file:
-        loader = ID3DatasetLoader()
-        loader.load_example_dataset("both")
-        df = loader.get_dataset()
-        target_att = "Dalc"
-        ranges_val = []
-        pivot_val = []
-        mixed_val = []
-        for i in range(repeats):
-            msk = np.random.rand(len(df)) < 0.15
-            test = df[msk].copy()
-            train = df[~msk].copy()
-
-            ranges = ID3(train, target_att, use_ranges_for_numeric=True)
-            print("Ranges ready")
-            pivot = ID3(train, target_att, use_ranges_for_numeric=False)
-            print("Pivot ready")
-            mixed = ID3(train, target_att, use_ranges_for_numeric=False,
-                        numeric_att=numeric)
-            print("Mixed ready")
-
-            test["pred"] = ranges.predict(test)
-            ranges_val.append(len(test[test["pred"] == test[target_att]]) / len(test))
-
-            test["pred"] = pivot.predict(test)
-            pivot_val.append(len(test[test["pred"] == test[target_att]]) / len(test))
-
-            test["pred"] = mixed.predict(test)
-            mixed_val.append(len(test[test["pred"] == test[target_att]]) / len(test))
-
-            print(str(i) + " " + str(ranges_val) + " " + str(mixed_val) + " " + str(pivot_val))
-
-        average = "Ranges avg: " + str(sum(ranges_val) / len(ranges_val))
-        file.write(average + " " + str(ranges_val) + "\n")
-        average = "Pivot avg: " + str(sum(pivot_val) / len(pivot_val))
-        file.write(average + " " + str(pivot_val) + "\n")
-        average = "Mixed avg: " + str(sum(mixed_val) / len(mixed_val))
-        file.write(average + " " + str(mixed_val) + "\n")
-
-
 def corrupt(noise_lvl: float, dataset: pd.DataFrame, target_att) -> pd.DataFrame:
     all_att_values = {}
     for column in dataset.columns:
@@ -188,5 +147,5 @@ def test_train_size(*, start=0.4, stop=1, step=0.1, repeats=10):
             file.write(str(curr_size) + " : " + line)
             curr_size += step
 
+cross_validate(5)
 
-compare_numeric(5)
