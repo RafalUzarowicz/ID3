@@ -117,7 +117,7 @@ class ID3:
 
         elif self.is_att_num.get(attribute, False) is True:
             if self.use_ranges_for_numeric:
-                data[attribute] = pd.to_numeric(data[attribute], errors='coerce')
+                data[attribute] = pd.to_numeric(data[attribute], errors='coerce').copy()
                 temp_df = data[data[attribute] <= self.att_range_dividers[attribute][0]]
                 info_gain -= self.entropy(temp_df) * len(temp_df) / len(data)
 
