@@ -48,7 +48,7 @@ class ID3:
         self.target_att_values = list(set(self.dataset[self.target_att].to_list()))
         self.is_att_num = {}
         self.avg_att_values_for_num = int(self.find_average_attribute_values_number())
-        if numeric_att:
+        if numeric_att is not None:
             for column in self.dataset.columns:
                 if column in numeric_att:
                     self.is_att_num[column] = True
@@ -147,13 +147,14 @@ class ID3:
         return best_attr
 
     def prepare_tree(self, numeric_att):
-        all_attributes = list(self.dataset.columns)
-
-        def build_tree(data: pd.DataFrame) -> {}:
-            all_attributes = list(data.columns)
+        def build_tree(data: pd.DataFrame, attributes) -> {}:
+            attributes_curr_tree = attributes
 
             def end_conditions(end_val: list, curr_dataset: pd.DataFrame):
-                if len(all_attributes) == 1:
+                if len(end_val) == 0:
+                    return None
+
+                if len(attributes_curr_tree) == 1:
                     values_counter = {k: 0 for k in self.target_att_values}
                     for value in end_val:
                         values_counter[value] += 1
@@ -171,11 +172,12 @@ class ID3:
                 if all(n == first_val for n in end_val):
                     return first_val
 
-                return build_tree(curr_dataset)
+                return build_tree(curr_dataset, attributes_curr_tree)
 
-            data = data[all_attributes]
+            data = data[attributes_curr_tree]
             max_gain_att = self.find_maximum_gain(data)
-            all_attributes.remove(max_gain_att)
+            attributes_curr_tree.remove(max_gain_att)
+
 
             node = {max_gain_att: {}}
 
@@ -230,9 +232,6 @@ class ID3:
 
             return node
 
-        msk = np.random.rand(len(self.dataset)) < 0.4
-        window = self.dataset[msk]
-
         def get_misclassified() -> pd.DataFrame:
             predictions = self.predict(self.dataset)
             col_name = "predictions"
@@ -245,17 +244,20 @@ class ID3:
         nr_misses = 1
         self.tree = None
         if self.use_window:
+            msk = np.random.rand(len(self.dataset)) < 0.4
+            window = self.dataset[msk]
             while nr_misses > 0 and len(window) < len(self.dataset):
                 self.prepare_data(numeric_att)
-                self.tree = build_tree(window)
                 all_attributes = list(self.dataset.columns)
+                self.tree = build_tree(window, all_attributes)
                 misses = get_misclassified()
                 nr_misses = len(misses)
                 if nr_misses:
                     window = pd.concat([window, misses]).drop_duplicates().reset_index(drop=True)
         else:
             self.prepare_data(numeric_att)
-            self.tree = build_tree(self.dataset)
+            all_attributes = list(self.dataset.columns)
+            self.tree = build_tree(self.dataset, all_attributes)
 
     def predict(self, dataset: pd.DataFrame) -> []:
         predictions = []
