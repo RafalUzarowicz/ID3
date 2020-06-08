@@ -257,7 +257,7 @@ class ID3:
                     window = pd.concat([window, misses]).drop_duplicates().reset_index(drop=True)
         else:
             self.prepare_data(numeric_att)
-            self.tree = build_tree(self.dataset)
+            self.tree = build_tree(self.dataset, list(self.dataset.columns))
 
     def predict(self, dataset: pd.DataFrame) -> []:
         predictions = []

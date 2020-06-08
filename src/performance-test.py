@@ -10,7 +10,7 @@ from src.id3 import ID3
 import matplotlib.pyplot as plt
 
 
-def cross_validate(division_num: int = 10, numeric=["age", "absences", "G1", "G2", "G3"]):
+def cross_validate(division_num: int = 10):
     def slice_df(dataframe: pd.DataFrame) -> []:
         df_list = []
         slice_size = len(dataframe) // division_num
@@ -35,18 +35,40 @@ def cross_validate(division_num: int = 10, numeric=["age", "absences", "G1", "G2
             slices = slice_df(dataset[0])
             target = dataset[1]
             accuracy = []
+            pivot_vals = []
+            mixed_vals = []
+            ranges_vals = []
 
             for i in range(division_num):
                 test = slices[i]
                 train = dataset[0].drop(test.index)
-                id3 = ID3(train, target, numeric_att=numeric)
-                test["pred"] = id3.predict(test)
-                slice_accuracy = len(test[test["pred"] == test[target]]) / len(test)
-                accuracy.append(slice_accuracy * 100)
+                target = dataset[1]
+                # msk = np.random.rand(len(df)) < 0.15
+                # test = df[msk].copy()
+                # train = df[~msk].copy()
+                pivot = ID3(train, target, use_ranges_for_numeric=False)
+                mixed = ID3(train, target, use_ranges_for_numeric=False,
+                            numeric_att=["age", "absences", "G1", "G2", "G3"])
+                ranges = ID3(train, target, use_ranges_for_numeric=True)
 
-            average = sum(accuracy) / len(accuracy)
-            file.write("avg: " + str(average))
-            file.write(str(accuracy))
+                test["pred"] = pivot.predict(test)
+                pivot_acc = len(test[test[target] == test["pred"]]) / len(test)
+                pivot_vals.append(pivot_acc * 100)
+
+                test["pred"] = mixed.predict(test)
+                mixed_acc = len(test[test[target] == test["pred"]]) / len(test)
+                mixed_vals.append(mixed_acc * 100)
+
+                test["pred"] = ranges.predict(test)
+                ranges_acc = len(test[test[target] == test["pred"]]) / len(test)
+                ranges_vals.append(ranges_acc * 100)
+                print("R: " + str(ranges_vals) + " P: " + str(pivot_vals) + " M: " + str(mixed_vals))
+
+        file.write("Mixed, ranges, pivot\n")
+        for numeric, name in [mixed_vals, ranges_vals, pivot_vals], ["Mixed: ", "Ranges: ", "Pivot: "]:
+            avg = sum(numeric) / len(numeric)
+            line = name + str(avg) + " " + str(numeric)
+            file.write(line + "\n")
 
 
 def corrupt(noise_lvl: float, dataset: pd.DataFrame, target_att) -> pd.DataFrame:
@@ -68,7 +90,6 @@ def corrupt(noise_lvl: float, dataset: pd.DataFrame, target_att) -> pd.DataFrame
                     new_val = random.choice(all_vals)
                     dataset.loc[index, key] = new_val
     return dataset
-
 
 def noise_level_test(*, start: float = 0.05, stop: float = 0.95, step: float = 0.10, repeats=10):
     with open('noise_test.txt', 'w')as file:
@@ -147,5 +168,6 @@ def test_train_size(*, start=0.4, stop=1, step=0.1, repeats=10):
             file.write(str(curr_size) + " : " + line)
             curr_size += step
 
-cross_validate(5)
+
+cross_validate()
 
