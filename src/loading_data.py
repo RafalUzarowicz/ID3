@@ -41,12 +41,12 @@ class ID3DatasetLoader:
 
     def load_example_dataset(self, which: str = "both"):
         if which == "mat":
-            df = pd.read_csv("../example_datasets/student-mat.csv")
+            df = pd.read_csv("example_datasets/student-mat.csv")
         elif which == "por":
-            df = pd.read_csv("../example_datasets/student-por.csv")
+            df = pd.read_csv("example_datasets/student-por.csv")
         elif which == "both":
-            df1 = pd.read_csv("../example_datasets/student-mat.csv")
-            df2 = pd.read_csv("../example_datasets/student-por.csv")
+            df1 = pd.read_csv("example_datasets/student-mat.csv")
+            df2 = pd.read_csv("example_datasets/student-por.csv")
             df = pd.concat([df1, df2], ignore_index=True)
         else:
             raise ValueError("Option not recognized.")
