@@ -14,6 +14,6 @@ information displayed when running:
 
 To run performance tests on example dataset:
 
-``` python -m src.performance-test```
+``` python -m src.performance_test```
 
 
