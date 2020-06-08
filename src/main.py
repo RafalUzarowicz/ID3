@@ -1,6 +1,7 @@
 """
-    authors: Rafał Uzarowicz - https://github.com/RafalUzarowicz
-            Joanna Sokołowska - https://github.com/jsokolowska
+    authors:
+    Rafał Uzarowicz - https://github.com/RafalUzarowicz
+    Joanna Sokołowska - https://github.com/jsokolowska
 """
 import argparse
 from pathlib import Path
