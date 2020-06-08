@@ -48,7 +48,6 @@ else:
         data = loader.get_dataset()
         id3 = ID3(data, args.target_att, args.use_ranges_for_numeric, args.use_window, list(args.numeric_attributes))
         predictions = id3.predict(data)
-        # print(predictions)
         data["predictions"] = predictions
         if args.file_type is "csv":
             data.to_csv("id3_results.csv")

@@ -147,7 +147,6 @@ class ID3:
         return best_attr
 
     def prepare_tree(self, numeric_att):
-        all_attributes = list(self.dataset.columns)
 
         def build_tree(data: pd.DataFrame) -> {}:
             all_attributes = list(data.columns)
@@ -248,7 +247,6 @@ class ID3:
             while nr_misses > 0 and len(window) < len(self.dataset):
                 self.prepare_data(numeric_att)
                 self.tree = build_tree(window)
-                all_attributes = list(self.dataset.columns)
                 misses = get_misclassified()
                 nr_misses = len(misses)
                 if nr_misses:

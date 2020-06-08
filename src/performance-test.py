@@ -21,9 +21,10 @@ def cross_validate(division_num: int = 10, numeric=["age", "absences", "G1", "G2
             dataframe = dataframe.drop(split_set.index)
         df_list.append(dataframe)
         return df_list
+
     with open("cross_validate_test.txt", 'w') as file:
         loader = ID3DatasetLoader()
-        loader.load_example_dataset("both", "both")
+        loader.load_example_dataset("both")
         df = loader.get_dataset()
         daily_df = df.drop("Walc", axis=1)
         weekend_df = df.drop("Dalc", axis=1)
@@ -42,11 +43,51 @@ def cross_validate(division_num: int = 10, numeric=["age", "absences", "G1", "G2
                 test["pred"] = id3.predict(test)
                 slice_accuracy = len(test[test["pred"] == test[target]]) / len(test)
                 accuracy.append(slice_accuracy * 100)
-                print(str(i) + dataset[1])
 
             average = sum(accuracy) / len(accuracy)
             file.write("avg: " + str(average))
             file.write(str(accuracy))
+
+
+def compare_numeric(repeats: int = 10, numeric=["age", "absences", "G1", "G2", "G3"]):
+    with open("compare_numeric_test.txt", 'w') as file:
+        loader = ID3DatasetLoader()
+        loader.load_example_dataset("both")
+        df = loader.get_dataset()
+        target_att = "Dalc"
+        ranges_val = []
+        pivot_val = []
+        mixed_val = []
+        for i in range(repeats):
+            msk = np.random.rand(len(df)) < 0.15
+            test = df[msk].copy()
+            train = df[~msk].copy()
+
+            ranges = ID3(train, target_att, use_ranges_for_numeric=True)
+            print("Ranges ready")
+            pivot = ID3(train, target_att, use_ranges_for_numeric=False)
+            print("Pivot ready")
+            mixed = ID3(train, target_att, use_ranges_for_numeric=False,
+                        numeric_att=numeric)
+            print("Mixed ready")
+
+            test["pred"] = ranges.predict(test)
+            ranges_val.append(len(test[test["pred"] == test[target_att]]) / len(test))
+
+            test["pred"] = pivot.predict(test)
+            pivot_val.append(len(test[test["pred"] == test[target_att]]) / len(test))
+
+            test["pred"] = mixed.predict(test)
+            mixed_val.append(len(test[test["pred"] == test[target_att]]) / len(test))
+
+            print(str(i) + " " + str(ranges_val) + " " + str(mixed_val) + " " + str(pivot_val))
+
+        average = "Ranges avg: " + str(sum(ranges_val) / len(ranges_val))
+        file.write(average + " " + str(ranges_val) + "\n")
+        average = "Pivot avg: " + str(sum(pivot_val) / len(pivot_val))
+        file.write(average + " " + str(pivot_val) + "\n")
+        average = "Mixed avg: " + str(sum(mixed_val) / len(mixed_val))
+        file.write(average + " " + str(mixed_val) + "\n")
 
 
 def corrupt(noise_lvl: float, dataset: pd.DataFrame, target_att) -> pd.DataFrame:
@@ -77,7 +118,7 @@ def noise_level_test(*, start: float = 0.05, stop: float = 0.95, step: float = 0
 
         target_att = "Dalc"
         loader = ID3DatasetLoader()
-        loader.load_example_dataset("both", "Walc")
+        loader.load_example_dataset("both")
         dataset = loader.get_dataset()
         curr_lvl = start
         while curr_lvl < stop:
@@ -110,7 +151,6 @@ def noise_level_test(*, start: float = 0.05, stop: float = 0.95, step: float = 0
             for i in range(len(res)):
                 res[i] = '{:.4f}'.format(res[i])
             line = ";".join(res)
-            print(line)
             file.write(line + "\n")
             curr_lvl += step
 
@@ -121,7 +161,7 @@ def test_train_size(*, start=0.4, stop=1, step=0.1, repeats=10):
         target_att = "Dalc"
         curr_size = start
         loader = ID3DatasetLoader()
-        loader.load_example_dataset("both", "Dalc")
+        loader.load_example_dataset("both")
         df = loader.get_dataset()
         results = []
         train_results = []
@@ -146,18 +186,7 @@ def test_train_size(*, start=0.4, stop=1, step=0.1, repeats=10):
             results.append(percent)
             train_results.append(sum(train_accuracy) / len(train_accuracy))
             file.write(str(curr_size) + " : " + line)
-            print("Size: " + str(curr_size))
-            print("Train: " + str(train_results) + "\nTest: " + str(results))
             curr_size += step
 
-        size_list = [size for size in np.arange(start, stop, step)]
-        size_list.append(stop - step / 2)
-        plt.plot(size_list, train_results, results)
-        plt.xlabel("accuracy")
-        plt.ylabel("training set size")
-        plt.show()
-        plt.savefig("train_size.png")
 
-
-cross_validate()
-
+compare_numeric(5)
